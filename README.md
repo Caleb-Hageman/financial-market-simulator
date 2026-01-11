@@ -114,3 +114,49 @@ The budget feature allows users to **set spending limits** and **track progress*
 - Time period (month and year)
 - Amount spent
 - Amount remaining
+
+
+
+
+┌──────────┐
+│  users   │
+├──────────┤
+│ id (PK)  │◄───────────────────────────────┐
+│ email    │                                │
+│ password │                                │
+└────┬─────┘                                │
+     │                                     │
+     │ 1-to-many                           │ 1-to-many
+     │                                     │
+┌────▼─────────┐                   ┌───────▼─────────┐
+│  categories  │                   │     budgets     │
+├──────────────┤                   ├─────────────────┤
+│ id (PK)      │◄────────────┐     │ id (PK)         │
+│ user_id (FK) │             │     │ user_id (FK)    │
+│ name         │             └────►│ category_id (FK)│
+│ type         │                   │ amount          │
+└────┬─────────┘                   │ period          │
+     │                             │ start_date      │
+     │ 1-to-many                   │ is_active       │
+     │                             └─────────────────┘
+┌────▼────────────┐
+│  transactions   │
+├─────────────────┤
+│ id (PK)         │
+│ user_id (FK)    │
+│ category_id (FK)│
+│ amount          │
+│ date            │
+└────┬────────────┘
+     │
+     │ many-to-1
+     │
+┌────▼──────────────────┐
+│ recurring_transactions│
+├───────────────────────┤
+│ id (PK)               │
+│ user_id (FK)          │
+│ category_id (FK)      │
+│ frequency             │
+│ next_occurrence       │
+└───────────────────────┘

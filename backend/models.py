@@ -1,5 +1,5 @@
 import sqlalchemy as _sql
-import database as _db
+from backend import database as _db
 import sqlalchemy.orm as _orm
 from datetime import datetime, timezone
 
@@ -44,6 +44,7 @@ class Transaction(_db.Base):
     id = _sql.Column(_sql.Integer, primary_key=True, index=True)
     user_id = _sql.Column(_sql.Integer, _sql.ForeignKey("users.id"), nullable=False)
     category_id = _sql.Column(_sql.Integer, _sql.ForeignKey("categories.id"), nullable=False)
+    recurring_transaction_id = _sql.Column(_sql.Integer, _sql.ForeignKey("recurring_transactions.id"), nullable=True)
     
     amount = _sql.Column(_sql.Float, nullable=False)
     type = _sql.Column(_sql.String, nullable=False)  # 'income' or 'expense'
@@ -52,14 +53,9 @@ class Transaction(_db.Base):
     
     # Optional fields
     receipt_url = _sql.Column(_sql.String, nullable=True)  # path to uploaded receipt
-    notes = _sql.Column(_sql.Text, nullable=True)
     
     # Metadata
     created_at = _sql.Column(_sql.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
-    updated_at = _sql.Column(_sql.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
-    
-    # Link to recurring transaction if applicable
-    recurring_transaction_id = _sql.Column(_sql.Integer, _sql.ForeignKey("recurring_transactions.id"), nullable=True)
     
     # Relationships
     user = _orm.relationship("User", back_populates="transactions")
@@ -83,7 +79,7 @@ class Budget(_db.Base):
     
     # For tracking the period
     start_date = _sql.Column(_sql.Date, nullable=False)
-    end_date = _sql.Column(_sql.Date, nullable=True)  # null means ongoing
+    is_active = _sql.Column(_sql.Boolean, default=True)
     
     # Alert settings
     alert_threshold = _sql.Column(_sql.Float, default=80.0)  # Alert at 80% of budget
@@ -96,7 +92,7 @@ class Budget(_db.Base):
     category = _orm.relationship("Category", back_populates="budgets")
     
     __table_args__ = (
-        _sql.Index("idx_budget_user_period", "user_id", "start_date", "end_date"),
+        _sql.Index("idx_budget_user_period", "user_id", "start_date"),
     )
 
 class RecurringTransaction(_db.Base):
@@ -112,7 +108,6 @@ class RecurringTransaction(_db.Base):
     
     # Recurrence settings
     frequency = _sql.Column(_sql.String, nullable=False)  # 'daily', 'weekly', 'monthly', 'yearly'
-    interval = _sql.Column(_sql.Integer, default=1)  # every X days/weeks/months
     start_date = _sql.Column(_sql.Date, nullable=False)
     end_date = _sql.Column(_sql.Date, nullable=True)  # null means no end date
     
@@ -127,7 +122,7 @@ class RecurringTransaction(_db.Base):
     # Relationships
     user = _orm.relationship("User", back_populates="recurring_transactions")
     category = _orm.relationship("Category")
-    generated_transactions = _orm.relationship("Transaction", back_populates="recurring_transaction")
+    generated_transactions = _orm.relationship("Transaction", back_populates="recurring_transaction", cascade="all, delete-orphan")
     
     __table_args__ = (
         _sql.Index("idx_recurring_next_occurrence", "is_active", "next_occurrence"),
